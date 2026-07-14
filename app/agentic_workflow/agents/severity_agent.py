@@ -1,0 +1,71 @@
+from langchain_google_genai import ChatGoogleGenerativeAI
+from app.core.constant import Constants
+from pydantic import SecretStr
+import os
+from app.core.exceptions import LLMInvocationError, LLMInitializationError
+from app.schemas import SeveritySchema
+from langchain_core.prompts import ChatPromptTemplate
+from typing import Optional, Any
+from app.prompt_library.prompts import SEVERITY_PROMPT
+from app.core.logger import logger
+from langsmith import traceable #type: ignore
+
+
+class SeverityAgent:
+
+    def __init__(self):
+
+        try:
+
+            self.llm = ChatGoogleGenerativeAI(
+                model = Constants.GEMINI_3_5,
+                temperature = 0,
+                max_output_tokens = 1000,
+                api_key = SecretStr(os.getenv("GOOGLE_API_KEY") or ""),
+            )
+
+        except Exception as e:
+            raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_5} LLM: {e}") from e
+    @traceable(name="severity", tags=["severity"])
+    async def analyze_severity(
+        self,
+        service_name: Optional[str],
+        error_type: Optional[str],
+        endpoint: Optional[str],
+        occurrence_count: Optional[int],
+        root_cause_hypothesis: Optional[str],
+        root_cause_confidence: Optional[str],
+    ) -> SeveritySchema:
+        try:
+            structured_llm: Any = self.llm.with_structured_output(SeveritySchema) #type: ignore
+
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", SEVERITY_PROMPT),
+                ("human", 
+                    "### INCIDENT DETAILS:\n"
+                    "Service: {service_name}\n"
+                    "Error type: {error_type}\n"
+                    "Endpoint: {endpoint}\n"
+                    "Occurrence count: {occurrence_count}\n\n"
+                    "### ROOT CAUSE ANALYSIS:\n"
+                    "Hypothesis: {root_cause_hypothesis}\n"
+                    "Confidence: {root_cause_confidence}\n\n"
+                    "Classify the severity."
+                ),
+            ])
+
+            chain = prompt | structured_llm
+            response: SeveritySchema = await chain.ainvoke({
+                "service_name": service_name or "unknown",
+                "error_type": error_type or "unknown",
+                "endpoint": endpoint or "unknown",
+                "occurrence_count": occurrence_count or "unknown",
+                "root_cause_hypothesis": root_cause_hypothesis or "not available",
+                "root_cause_confidence": root_cause_confidence or "unknown",
+            })
+
+            logger.debug(f"Severity Response: {response}")  
+            return response
+
+        except Exception as e:
+            raise LLMInvocationError("Severity LLM failed during classification") from e

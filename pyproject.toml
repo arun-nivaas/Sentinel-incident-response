@@ -1,0 +1,26 @@
+[project]
+name = "llm-004-sentinel-incident-response-system"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic>=1.18.5",
+    "colorlog>=6.10.1",
+    "fastapi>=0.139.0",
+    "langchain>=1.3.11",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.4.8",
+    "langchain-experimental>=0.4.2",
+    "langchain-google-genai>=4.2.7",
+    "langchain-openai>=1.3.3",
+    "langgraph>=1.2.7",
+    "langsmith>=0.9.7",
+    "mcp>=1.28.1",
+    "psycopg2-binary>=2.9.12",
+    "pydantic-settings>=2.14.2",
+    "pygithub>=2.9.1",
+    "python-dotenv>=1.2.2",
+    "sqlalchemy>=2.0.51",
+    "uvicorn[standard]>=0.49.0",
+]
