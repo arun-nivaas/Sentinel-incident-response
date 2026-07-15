@@ -9,6 +9,7 @@ from app.agentic_workflow.graph.incident_graph import incident_graph
 from app.core.utils import compute_fingerprint
 from typing import Dict,Any
 from langsmith import traceable #type: ignore
+from datetime import datetime
 
 
 class IncidentService:
@@ -37,7 +38,7 @@ class IncidentService:
             stack_trace=final_state.get("stack_trace"),
             endpoint=final_state.get("endpoint"),
             occurrence_count=final_state.get("occurrence_count"),
-            occurred_at=final_state.get("occurred_at"),
+            occurred_at=self._parse_occurred_at(final_state.get("occurred_at")),
             severity_hint=final_state.get("severity_hint"),
             fingerprint=fingerprint,
         )
@@ -65,3 +66,20 @@ class IncidentService:
         self.db.commit()
         self.db.refresh(parsed)
         return parsed, final_state 
+    
+
+    @staticmethod
+    def _parse_occurred_at(value: Any) -> datetime | None:
+        if value is None or isinstance(value, datetime):
+            return value
+        if not isinstance(value, str) or not value.strip():
+            return None
+
+        normalized_value = value.strip()
+        if normalized_value.endswith("Z"):
+            normalized_value = f"{normalized_value[:-1]}+00:00"
+
+        try:
+            return datetime.fromisoformat(normalized_value)
+        except ValueError:
+            return None

@@ -9,7 +9,7 @@ async def severity_node(state: IncidentState) -> Dict[str, Any]:
         endpoint=state.get("endpoint"),
         occurrence_count=state.get("occurrence_count"),
         root_cause_hypothesis=state.get("root_cause_hypothesis"),
-        root_cause_confidence=state.get("confidence"),
+        root_cause_confidence=state.get("root_cause_confidence"),
     )
 
     return {
