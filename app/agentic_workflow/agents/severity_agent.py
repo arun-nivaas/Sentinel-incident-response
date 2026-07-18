@@ -4,11 +4,10 @@ from pydantic import SecretStr
 import os
 from app.core.exceptions import LLMInvocationError, LLMInitializationError
 from app.schemas import SeveritySchema
-from langchain_core.prompts import ChatPromptTemplate
 from typing import Optional, Any
-from app.prompt_library.prompts import SEVERITY_PROMPT
 from app.core.logger import logger
 from langsmith import traceable #type: ignore
+from app.core.prompt_registry import PromptRegistry
 
 
 class SeverityAgent:
@@ -23,6 +22,7 @@ class SeverityAgent:
                 max_output_tokens = 1000,
                 api_key = SecretStr(os.getenv("GOOGLE_API_KEY") or ""),
             )
+            self.prompt = PromptRegistry()
 
         except Exception as e:
             raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_5} LLM: {e}") from e
@@ -39,20 +39,7 @@ class SeverityAgent:
         try:
             structured_llm: Any = self.llm.with_structured_output(SeveritySchema) #type: ignore
 
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", SEVERITY_PROMPT),
-                ("human", 
-                    "### INCIDENT DETAILS:\n"
-                    "Service: {service_name}\n"
-                    "Error type: {error_type}\n"
-                    "Endpoint: {endpoint}\n"
-                    "Occurrence count: {occurrence_count}\n\n"
-                    "### ROOT CAUSE ANALYSIS:\n"
-                    "Hypothesis: {root_cause_hypothesis}\n"
-                    "Confidence: {root_cause_confidence}\n\n"
-                    "Classify the severity."
-                ),
-            ])
+            prompt = self.prompt.get_prompt("sentinel-severity-analyzer")
 
             chain = prompt | structured_llm
             response: SeveritySchema = await chain.ainvoke({
