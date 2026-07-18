@@ -3,12 +3,11 @@ import logging
 from typing import Optional, Any
 from pydantic import SecretStr
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
 from app.schemas import RootCauseSchema
 from app.core.exceptions import LLMInvocationError,LLMInitializationError
 from app.core.constant import Constants
-from app.prompt_library.prompts import ROOT_CAUSE_PROMPT
 from langsmith import traceable # type:ignore
+from app.core.prompt_registry import PromptRegistry 
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,8 @@ class RootCauseAgent:
             temperature = 0,
             max_output_tokens = 1000,
             api_key = SecretStr(os.getenv("GOOGLE_API_KEY") or ""),
-            ) 
+            )
+            self.prompt = PromptRegistry()
         except Exception as e:
             raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_5} LLM: {e}") from e
         
@@ -36,18 +36,7 @@ class RootCauseAgent:
         try:
             structured_llm:Any = self.llm.with_structured_output(RootCauseSchema) #type: ignore
 
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", ROOT_CAUSE_PROMPT),
-                ("human", (
-                    "### INCIDENT DETAILS:\n"
-                    "Service: {service_name}\n"
-                    "Error type: {error_type}\n"
-                    "Stack trace: {stack_trace}\n"
-                    "Endpoint: {endpoint}\n"
-                    "Occurrence count: {occurrence_count}\n\n"
-                    "Analyze and provide a root cause hypothesis."
-                )),
-            ])
+            prompt = self.prompt.get_prompt("sentinel-rootcause-analyzer")
 
             chain = prompt | structured_llm
             response: RootCauseSchema = await chain.ainvoke({

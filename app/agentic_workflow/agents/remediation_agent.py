@@ -1,4 +1,3 @@
-from langchain_core.prompts import ChatPromptTemplate
 from pydantic import SecretStr
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.exceptions import LLMInvocationError, LLMInitializationError
@@ -6,9 +5,9 @@ from app.core.constant import Constants
 from app.schemas import RemediationSchema
 from typing import Optional,Any
 import os
-from app.prompt_library.prompts import REMEDIATION_PROMPT
 from app.core.logger import logger
 from langsmith import traceable # type:ignore
+from app.core.prompt_registry import PromptRegistry
 
 class RemediationAgent:
     def __init__(self):
@@ -19,6 +18,7 @@ class RemediationAgent:
                 max_output_tokens = 1000,
                 api_key = SecretStr(os.getenv("GOOGLE_API_KEY") or ""),
             ) 
+              self.prompt = PromptRegistry()
         except Exception as e:
             raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_1} LLM: {e}") from e
         
@@ -35,22 +35,7 @@ class RemediationAgent:
         try:
             structured_llm: Any = self.llm.with_structured_output(RemediationSchema) #type:ignore
 
-            prompt = ChatPromptTemplate.from_messages([
-            ("system", REMEDIATION_PROMPT),
-            ("human", (
-                "### INCIDENT SUMMARY:\n"
-                "Service: {service_name}\n"
-                "Error type: {error_type}\n"
-                "Stack trace: {stack_trace}\n"
-                "Endpoint: {endpoint}\n"
-                "Occurrence count: {occurrence_count}\n\n"
-                "### ROOT CAUSE:\n{root_cause_hypothesis} "
-                "(confidence: {root_cause_confidence})\n\n"
-                "### SEVERITY:\n{severity_level} — {severity_reasoning} "
-                "(confidence: {severity_confidence})\n\n"
-                "Provide a suggested fix and a GitHub issue body."
-            )),
-        ])
+            prompt = self.prompt.get_prompt("sentinel-remediation-analyzer")
 
             chain = prompt | structured_llm
             response: RemediationSchema = await chain.ainvoke({

@@ -1,4 +1,3 @@
-from langchain_core.prompts import ChatPromptTemplate
 from pydantic import SecretStr
 import os
 from langchain_core.runnables import Runnable
@@ -7,9 +6,9 @@ from app.schemas import LogAnalysisSchema
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.exceptions import LLMInvocationError,LLMInitializationError
 from app.core.constant import Constants
-from app.prompt_library.prompts import LOG_ANALYZER_PROMPT
 from app.core.logger import logger
 from langsmith import traceable # type:ignore
+from app.core.prompt_registry import PromptRegistry
 
 
 class LogAnalyzerAgent:
@@ -21,6 +20,7 @@ class LogAnalyzerAgent:
                 max_output_tokens = 1000,
                 api_key = SecretStr(os.getenv("GOOGLE_API_KEY") or ""),
             )
+              self.prompt = PromptRegistry()
         except Exception as e:
             raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_1} LLM: {e}") from e
 
@@ -28,11 +28,8 @@ class LogAnalyzerAgent:
     async def analyze_logs(self, raw_payload: str):
         try:
             structured_llm: Runnable[LanguageModelInput, LogAnalysisSchema] = self.llm.with_structured_output(LogAnalysisSchema) #type: ignore
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", LOG_ANALYZER_PROMPT),
-                ("human", "### RAW LOG:\n{raw_payload}\n\nExtract all relevant fields precisely.")
-            ])
-
+            prompt = self.prompt.get_prompt("sentinel-log-analyzer")
+        
             chain = prompt | structured_llm  # type: ignore
             response = await chain.ainvoke({"raw_payload": raw_payload})  # type: ignore
 
