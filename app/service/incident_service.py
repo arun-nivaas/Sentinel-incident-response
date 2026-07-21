@@ -24,7 +24,7 @@ class IncidentService:
                if k not in ("raw_incident_id", "raw_payload")},
         })
 
-        final_state = await incident_graph.ainvoke(initial_state) # type: ignore
+        final_state = await incident_graph.ainvoke(initial_state,config = {"configurable": {"db": self.db}}) # type: ignore
         return self._persist(raw, final_state)
 
     def _persist(self, raw: RawIncident, final_state: Dict[str,Any]) -> tuple[ParsedIncident, Dict[str,Any]]:

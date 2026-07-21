@@ -39,7 +39,7 @@ root_cause_prompt = ChatPromptTemplate.from_messages([
                 )),
             ])
 
-client.push_prompt("sentinel-rootcause-analyzer", object=root_cause_prompt)
+client.push_prompt("sentinel-rootcause-analyzer-v2", object=root_cause_prompt)
 
 #Severity Analyzer
 
