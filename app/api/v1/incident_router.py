@@ -5,6 +5,7 @@ from app.models.raw_incident import RawIncident
 from app.models.parsed_incident import ParsedIncident
 from app.schemas import IncidentCreate, IncidentResponse, ProcessedIncidentResponse
 from app.service.incident_service import IncidentService
+from app.core.exception import NotFoundException
 
 router = APIRouter(prefix="/api/v1",tags=["Incident"])
 
@@ -24,7 +25,10 @@ async def create_raw_incident(incident: IncidentCreate, db: Session = Depends(ge
 async def process_raw_incident(incident_id: int, db: Session = Depends(get_db)):
     raw = db.query(RawIncident).filter(RawIncident.id == incident_id).first()
     if not raw:
-        raise HTTPException(status_code=404, detail="Raw incident not found")
+        raise NotFoundException(
+            message="Raw incident not found",
+            details=f"No incident with id {incident_id}"
+        )
 
     existing = db.query(ParsedIncident).filter(ParsedIncident.raw_incident_id == incident_id).first()
     if existing:

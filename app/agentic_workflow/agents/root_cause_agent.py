@@ -4,7 +4,7 @@ from typing import Optional, Any,Dict
 from pydantic import SecretStr
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.schemas import RootCauseSchema
-from app.core.exceptions import LLMInvocationError,LLMInitializationError
+from app.core.exception import LLMInvocationError,LLMInitializationError
 from app.core.constant import Constants
 from langsmith import traceable # type:ignore
 from app.core.prompt_registry import PromptRegistry
@@ -27,7 +27,7 @@ class RootCauseAgent:
             self.embedding_service = EmbeddingService()
             self.retrieval_service = RetrievalService(db)
         except Exception as e:
-            raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_5} LLM: {e}") from e
+            raise LLMInitializationError(message=f"Unable to initialize {Constants.GEMINI_3_5} LLM",details=str(e)) from e
         
     def _build_context(self, matches: list[Dict[str,Any]]) -> str:
         if not matches:
@@ -82,4 +82,4 @@ class RootCauseAgent:
 
         except Exception as e:
             logger.error("LLM invocation failed for root cause analysis", exc_info=True)
-            raise LLMInvocationError("Root Cause LLM failed during analysis") from e
+            raise LLMInvocationError(message = f"Failed to invoke {Constants.GEMINI_3_1}", details = str(e)) from e
