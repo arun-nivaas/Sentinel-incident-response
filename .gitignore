@@ -25,3 +25,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Model cache - embedding models
+model_cache/
+model_cache/**
