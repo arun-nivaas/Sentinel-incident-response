@@ -6,10 +6,10 @@ from app.models.parsed_incident import ParsedIncident
 from app.schemas import IncidentCreate, IncidentResponse, ProcessedIncidentResponse
 from app.service.incident_service import IncidentService
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1",tags=["Incident"])
 
 
-@router.post("/raw_incident", response_model=IncidentResponse)
+@router.post("/incident", response_model=IncidentResponse)
 async def create_raw_incident(incident: IncidentCreate, db: Session = Depends(get_db)):
     existing = db.query(RawIncident).filter(RawIncident.raw_payload == incident.raw_payload).first()
     if existing:
@@ -20,8 +20,7 @@ async def create_raw_incident(incident: IncidentCreate, db: Session = Depends(ge
     db.refresh(new_incident)
     return new_incident
 
-
-@router.post("/raw_incident/{incident_id}/process", response_model=ProcessedIncidentResponse)
+@router.post("/incident/{incident_id}/process", response_model=ProcessedIncidentResponse)
 async def process_raw_incident(incident_id: int, db: Session = Depends(get_db)):
     raw = db.query(RawIncident).filter(RawIncident.id == incident_id).first()
     if not raw:
