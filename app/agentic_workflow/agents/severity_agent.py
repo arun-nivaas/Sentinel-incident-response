@@ -2,7 +2,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.constant import Constants
 from pydantic import SecretStr
 import os
-from app.core.exceptions import LLMInvocationError, LLMInitializationError
+from app.core.exception import LLMInvocationError, LLMInitializationError
 from app.schemas import SeveritySchema
 from typing import Optional, Any
 from app.core.logger import logger
@@ -25,7 +25,7 @@ class SeverityAgent:
             self.prompt = PromptRegistry()
 
         except Exception as e:
-            raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_5} LLM: {e}") from e
+            raise LLMInitializationError(message=f"Unable to initialize {Constants.GEMINI_3_5} LLM",details=str(e)) from e
     @traceable(name="severity", tags=["severity"])
     async def analyze_severity(
         self,
@@ -55,4 +55,4 @@ class SeverityAgent:
             return response
 
         except Exception as e:
-            raise LLMInvocationError("Severity LLM failed during classification") from e
+            raise LLMInvocationError(message = f"Failed to invoke {Constants.GEMINI_3_1}", details = str(e)) from e

@@ -4,7 +4,7 @@ from langchain_core.runnables import Runnable
 from langchain_core.language_models import LanguageModelInput
 from app.schemas import LogAnalysisSchema
 from langchain_google_genai import ChatGoogleGenerativeAI
-from app.core.exceptions import LLMInvocationError,LLMInitializationError
+from app.core.exception import LLMInvocationError,LLMInitializationError
 from app.core.constant import Constants
 from app.core.logger import logger
 from langsmith import traceable # type:ignore
@@ -22,7 +22,7 @@ class LogAnalyzerAgent:
             )
               self.prompt = PromptRegistry()
         except Exception as e:
-            raise LLMInitializationError(f"Unable to initialize {Constants.GEMINI_3_1} LLM: {e}") from e
+            raise LLMInitializationError(message=f"Unable to initialize {Constants.GEMINI_3_5} LLM",details=str(e)) from e
 
     @traceable(name="log_analyzer", tags=["log-analyzer"])
     async def analyze_logs(self, raw_payload: str):
@@ -38,4 +38,4 @@ class LogAnalyzerAgent:
             return response  # type: ignore
 
         except Exception as e:
-            raise LLMInvocationError(f"Failed to invoke {Constants.GEMINI_3_1} LLM: {e}") from e
+            raise LLMInvocationError(message = f"Failed to invoke {Constants.GEMINI_3_1}", details = str(e)) from e
