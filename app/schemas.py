@@ -90,6 +90,8 @@ class ProcessedIncidentResponse(BaseModel):
     severity_hint: Optional[str]
     root_cause_hypothesis: Optional[str]
     root_cause_confidence: Optional[str]
+    rag_grounded: Optional[bool]
+    root_cause_retry_count: Optional[int]
     severity_level: Optional[str]
     severity_reasoning: Optional[str]
     severity_confidence: Optional[str]
@@ -99,6 +101,7 @@ class ProcessedIncidentResponse(BaseModel):
     github_issue_url: Optional[str]
     github_issue_number: Optional[int]
 
+    
     class Config:
         from_attributes = True
 

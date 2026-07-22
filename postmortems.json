@@ -1,0 +1,77 @@
+[
+  {
+    "service_name": "InventoryService",
+    "error_type": "NullPointerException",
+    "summary": "On 2026-05-14, InventoryService threw a NullPointerException in reserveStock() when processing a reservation request for a discontinued product ID. The product lookup returned null, but the code proceeded to access its quantity field without a null check. Root cause: missing validation after product lookup allowed a null reference to propagate into business logic. Fixed by adding an explicit null-check and returning a 404 response when the product doesn't exist."
+  },
+  {
+    "service_name": "AuthService",
+    "error_type": "ConnectionTimeoutError",
+    "summary": "On 2026-04-02, AuthService experienced a spike of Redis connection timeouts during a traffic surge from a marketing campaign. The Redis connection pool was configured with a max size of 10, which was insufficient for concurrent login load. Root cause: connection pool exhaustion under load, causing new session lookups to queue and eventually time out. Fixed by increasing pool size to 50 and adding circuit-breaker logic to fail fast instead of queueing indefinitely."
+  },
+  {
+    "service_name": "OrderService",
+    "error_type": "DeadlockException",
+    "summary": "On 2026-03-21, OrderService intermittently failed to process concurrent order updates, throwing database deadlock exceptions. Root cause: two code paths (order status update and inventory decrement) were acquiring row locks on shared tables in inconsistent order, creating circular wait conditions under concurrent load. Fixed by enforcing a consistent lock acquisition order across both code paths and adding retry-with-backoff logic for transient deadlocks."
+  },
+  {
+    "service_name": "PaymentService",
+    "error_type": "TimeoutException",
+    "summary": "On 2026-06-09, PaymentService calls to a third-party payment gateway began timing out intermittently during peak evening traffic. Root cause: the gateway's response times degraded under their own load, but PaymentService had no timeout-specific handling — failed calls were retried immediately without backoff, amplifying load on the already-struggling gateway. Fixed by implementing exponential backoff on retries and a fallback to a secondary payment provider after repeated failures."
+  },
+  {
+    "service_name": "NotificationService",
+    "error_type": "OutOfMemoryError",
+    "summary": "On 2026-02-18, NotificationService crashed repeatedly with OutOfMemoryError during a bulk email campaign. Root cause: the service loaded the entire recipient list into memory at once instead of processing it in batches, causing memory usage to scale linearly with campaign size and exceed the container's allocated heap. Fixed by refactoring the dispatch logic to process recipients in paginated batches of 500."
+  },
+  {
+    "service_name": "CheckoutService",
+    "error_type": "SQLTimeoutException",
+    "summary": "On 2026-06-20, CheckoutService experienced repeated SQL timeout exceptions during order commit, blocking users from completing purchases. Root cause: a missing index on the orders table caused a full table scan during commit under peak load, pushing query time past the configured timeout threshold. Fixed by adding a composite index on (user_id, created_at) and reducing the transaction scope to commit faster."
+  },
+  {
+    "service_name": "SearchService",
+    "error_type": "Invalid query syntax",
+    "summary": "On 2026-05-30, SearchService logged a small number of rejected queries due to unbalanced parentheses in user-submitted search strings. Root cause: this was expected client-side input validation working correctly — the query parser correctly rejected malformed input rather than crashing or returning incorrect results. No fix required; monitored for any spike in frequency, which did not occur."
+  },
+  {
+    "service_name": "LoggingService",
+    "error_type": "IOException",
+    "summary": "On 2026-01-11, LoggingService failed to write log batches due to disk space exhaustion on the log volume. Root cause: log rotation was not deleting old compressed archives fast enough relative to incoming log volume during a traffic spike. Fixed by tightening the log retention policy from 30 to 14 days and adding a disk-usage alert at 80% capacity to catch this earlier next time."
+  },
+  {
+    "service_name": "GatewayService",
+    "error_type": "Rate limit exceeded",
+    "summary": "On 2026-04-18, GatewayService rejected a burst of requests from a single external client exceeding the configured rate limit. Root cause: this was the rate limiter functioning exactly as designed, protecting the service from a misbehaving client integration. No fix required; reached out to the client to correct their retry logic on their end."
+  },
+  {
+    "service_name": "AuthService",
+    "error_type": "JWTExpiredException",
+    "summary": "On 2026-03-05, AuthService rejected a high volume of tokens as expired almost immediately after issuance. Root cause: a misconfigured token TTL value (set to 2 seconds instead of 2 hours due to a unit mismatch in config, seconds vs. milliseconds) caused tokens to expire nearly instantly. Fixed by correcting the TTL configuration and adding a unit test asserting a minimum reasonable TTL value."
+  },
+  {
+    "service_name": "ShippingService",
+    "error_type": "HTTP 502",
+    "summary": "On 2026-02-27, ShippingService intermittently received HTTP 502 errors from a third-party carrier rate API. Root cause: the carrier's API experienced sporadic instability outside our control; our client had no fallback or cached-rate mechanism for when the carrier was unreachable. Fixed by adding a short-lived cache of recent successful rate responses to serve during carrier outages, plus a fallback to a secondary carrier integration."
+  },
+  {
+    "service_name": "CacheService",
+    "error_type": "High eviction rate",
+    "summary": "On 2026-01-30, CacheService's hit rate dropped sharply during a promotional event due to a spike in unique product lookups exceeding the cache's configured size. Root cause: the cache was sized for typical traffic and had not been scaled for the promotional event's working set size, causing excessive eviction. Fixed by increasing cache memory allocation ahead of known high-traffic events and adding eviction-rate monitoring as a proactive alert."
+  },
+  {
+    "service_name": "ProfileService",
+    "error_type": "Deprecated field usage",
+    "summary": "On 2026-05-02, ProfileService logged usage of a deprecated request field by a small number of legacy clients. Root cause: expected behavior during a planned API migration — the deprecated field was intentionally kept as a no-op for backward compatibility. No fix required; tracked usage to determine when the deprecated field could be safely removed entirely."
+  },
+  {
+    "service_name": "AnalyticsService",
+    "error_type": "DataIntegrityException",
+    "summary": "On 2026-04-25, AnalyticsService detected checksum mismatches on a batch of ingested events, indicating partial write corruption. Root cause: a network interruption during a multi-part upload caused an incomplete batch to be written before the checksum validation step, and the partial write was not properly rolled back. Fixed by wrapping the batch write in an explicit transaction with atomic commit-or-rollback semantics."
+  },
+  {
+    "service_name": "RecommendationService",
+    "error_type": "ModelLoadException",
+    "summary": "On 2026-03-15, RecommendationService failed to start after a deployment due to a missing model artifact file. Root cause: the deployment pipeline's model-publishing step had a race condition, allowing the service to start before the new model artifact finished uploading to the shared storage bucket. Fixed by adding a readiness check that blocks service startup until the model artifact's presence and checksum are verified."
+  }
+]
