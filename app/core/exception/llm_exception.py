@@ -12,3 +12,11 @@ class LLMInvocationError(SentinelException):
 class NotFoundException(SentinelException):
     def __init__(self, message: str = "Resource not found", details: str | None = None):
         super().__init__(message, code="NOT_FOUND", status_code=404, details=details)
+
+class DatabaseException(SentinelException):
+    def __init__(self, message: str = "Database operation failed", details: str | None = None):
+        super().__init__(message, code="DATABASE_ERROR", status_code=503, details=details)
+
+class DuplicateResourceException(SentinelException):
+    def __init__(self, message: str = "Resource already exists", details: str | None = None):
+        super().__init__(message, code="DUPLICATE_RESOURCE", status_code=409, details=details)
