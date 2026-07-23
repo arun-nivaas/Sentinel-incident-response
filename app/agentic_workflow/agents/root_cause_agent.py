@@ -10,12 +10,12 @@ from langsmith import traceable # type:ignore
 from app.core.prompt_registry import PromptRegistry
 from app.service.embedding_service import EmbeddingService
 from app.service.retrieval_service import RetrievalService 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 class RootCauseAgent:
-    def __init__(self,db: Session):
+    def __init__(self,db: AsyncSession):
         try:
             self.llm = ChatGoogleGenerativeAI(
             model = Constants.GEMINI_3_5,
@@ -52,7 +52,7 @@ class RootCauseAgent:
         try:
             query_text = f"{error_type or ''} in {service_name or ''}: {stack_trace or ''}"
             query_embedding = self.embedding_service.embed_text(query_text)
-            matches = self.retrieval_service.find_similar_postmortems(
+            matches = await self.retrieval_service.find_similar_postmortems(
                 query_embedding, top_k=2, broad=broad_retrieval
             )
             retrieved_context = self._build_context(matches)

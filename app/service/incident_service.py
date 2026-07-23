@@ -1,5 +1,5 @@
 from typing import cast
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.raw_incident import RawIncident
 from app.models.parsed_incident import ParsedIncident
 from app.models.agent_finding import AgentFinding
@@ -13,7 +13,7 @@ from datetime import datetime
 
 
 class IncidentService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
     @traceable(name="process_incident_pipeline")
     async def process_incident(self, raw: RawIncident) -> tuple[ParsedIncident, Dict[str,Any]]:
@@ -25,9 +25,9 @@ class IncidentService:
         })
 
         final_state = await incident_graph.ainvoke(initial_state,config = {"configurable": {"db": self.db}}) # type: ignore
-        return self._persist(raw, final_state)
+        return await self._persist(raw, final_state)
 
-    def _persist(self, raw: RawIncident, final_state: Dict[str,Any]) -> tuple[ParsedIncident, Dict[str,Any]]:
+    async def _persist(self, raw: RawIncident, final_state: Dict[str,Any]) -> tuple[ParsedIncident, Dict[str,Any]]:
         fingerprint = compute_fingerprint(
             final_state.get("service_name"), final_state.get("error_type"), final_state.get("endpoint")
         )
@@ -63,8 +63,8 @@ class IncidentService:
         ))
 
         raw.status = "processed"
-        self.db.commit()
-        self.db.refresh(parsed)
+        await self.db.commit()
+        await self.db.refresh(parsed)
         return parsed, final_state 
     
 

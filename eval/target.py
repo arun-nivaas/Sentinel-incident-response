@@ -1,7 +1,7 @@
 from typing import Dict, Any
 from app.agentic_workflow.nodes.log_analyzer_node import log_analyzer_node
 from app.agentic_workflow.nodes.root_cause_node import root_cause_node
-from app.database.database import SessionLocal
+from app.database.database import AsyncSessionLocal
 
 async def target(inputs: Dict[str, Any]) -> Dict[str, Any]:
     raw_payload = inputs["input"]["raw_payload"]
@@ -10,7 +10,7 @@ async def target(inputs: Dict[str, Any]) -> Dict[str, Any]:
 
 async def root_cause_target(inputs: Dict[str, Any]) -> Dict[str, Any]:
     incident_input = inputs["input"]
-    db = SessionLocal()
+    db = AsyncSessionLocal()
     try:
         state = {
             "service_name": incident_input.get("service_name"),
@@ -24,4 +24,4 @@ async def root_cause_target(inputs: Dict[str, Any]) -> Dict[str, Any]:
         result = await root_cause_node(state, {"configurable": {"db": db}})
         return result
     finally:
-        db.close()
+        await db.close()

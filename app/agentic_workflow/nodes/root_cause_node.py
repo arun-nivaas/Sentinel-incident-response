@@ -1,14 +1,14 @@
 from typing import Dict, Any
 from app.agentic_workflow.state.incident_state import IncidentState
 from app.agentic_workflow.agents.root_cause_agent import RootCauseAgent
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from langchain_core.runnables import RunnableConfig
 
 
 async def root_cause_node(state: IncidentState,config:RunnableConfig) -> Dict[str,Any]:
 
     configurable:Any = config.get("configurable") or {}
-    db: Session = configurable.get("db")
+    db: AsyncSession = configurable.get("db")
 
     retry_count = state.get("root_cause_retry_count", 0) or 0
     broad_retrieval = retry_count > 0  # use looser threshold on retry
